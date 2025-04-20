@@ -9,6 +9,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.gubern.patientservice.dto.PatientRequestDTO;
 import ru.gubern.patientservice.dto.PatientResponseDTO;
+import ru.gubern.patientservice.dto.validator.CreatePatientValidationGroup;
 import ru.gubern.patientservice.service.PatientService;
 
 import java.util.List;
@@ -27,7 +28,9 @@ public class PatientController {
     }
 
     @PostMapping
-    public ResponseEntity<PatientResponseDTO> createPatient(@Valid @RequestBody PatientRequestDTO patientDto) {
+    public ResponseEntity<PatientResponseDTO> createPatient(
+            @Validated({Default.class, CreatePatientValidationGroup.class})
+            @RequestBody PatientRequestDTO patientDto) {
         return ResponseEntity.ok().body(patientService.createPatient(patientDto));
     }
 
