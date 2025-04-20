@@ -4,11 +4,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.gubern.patientservice.dto.PatientRequestDTO;
 import ru.gubern.patientservice.dto.PatientResponseDTO;
+import ru.gubern.patientservice.exception.EmailAlreadyExistsException;
+import ru.gubern.patientservice.exception.PatientNotFoundException;
 import ru.gubern.patientservice.mapper.PatientMapper;
 import ru.gubern.patientservice.model.Patient;
 import ru.gubern.patientservice.repository.PatientRepository;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +26,29 @@ public class PatientService {
     }
 
     public PatientResponseDTO createPatient(PatientRequestDTO patientDto) {
+        if (patientRepository.existsByEmail(patientDto.getEmail())) {
+            throw new EmailAlreadyExistsException("A patient with this email already exists " +
+                    patientDto.getEmail());
+        }
         Patient patient = patientRepository.save(PatientMapper.toPatient(patientDto));
         return PatientMapper.toDto(patient);
+    }
+
+    public PatientResponseDTO updatePatient(UUID id, PatientRequestDTO patientRequestDto) {
+        Patient patient = patientRepository.findById(id)
+                .orElseThrow(() -> new PatientNotFoundException("Patient not found with ID: " + id));
+
+        if (patientRepository.existsByEmail(patientRequestDto.getEmail())) {
+            throw new EmailAlreadyExistsException("A patient with this email already exists " +
+                    patientRequestDto.getEmail());
+        }
+
+        patient.setName(patientRequestDto.getName());
+        patient.setAddress(patientRequestDto.getAddress());
+        patient.setEmail(patientRequestDto.getEmail());
+        patient.setDateOfBirth(LocalDate.parse(patientRequestDto.getDateOfBirth()));
+
+        Patient updatedPatient = patientRepository.save(patient);
+        return PatientMapper.toDto(updatedPatient);
     }
 }
