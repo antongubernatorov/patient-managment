@@ -1,12 +1,12 @@
 package ru.gubern.patientservice.service;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.gubern.patientservice.dto.PatientRequestDTO;
 import ru.gubern.patientservice.dto.PatientResponseDTO;
 import ru.gubern.patientservice.exception.EmailAlreadyExistsException;
 import ru.gubern.patientservice.exception.PatientNotFoundException;
 import ru.gubern.patientservice.grpc.BillingServiceGrpcClient;
+import ru.gubern.patientservice.kafka.KafkaProducer;
 import ru.gubern.patientservice.mapper.PatientMapper;
 import ru.gubern.patientservice.model.Patient;
 import ru.gubern.patientservice.repository.PatientRepository;
@@ -16,11 +16,17 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class PatientService {
 
     private final PatientRepository patientRepository;
     private final BillingServiceGrpcClient billingServiceGrpcClient;
+    private final KafkaProducer kafkaProducer;
+
+    public PatientService(PatientRepository patientRepository, BillingServiceGrpcClient billingServiceGrpcClient, KafkaProducer kafkaProducer) {
+        this.patientRepository = patientRepository;
+        this.billingServiceGrpcClient = billingServiceGrpcClient;
+        this.kafkaProducer = kafkaProducer;
+    }
 
     public List<PatientResponseDTO> getPatients() {
         List<Patient> patients = patientRepository.findAll();
@@ -36,6 +42,8 @@ public class PatientService {
 
         billingServiceGrpcClient.createBillingAccount(patient.getId().toString(),
                 patient.getName(), patient.getEmail());
+
+        kafkaProducer.sendEvent(patient);
 
         return PatientMapper.toDto(patient);
     }
